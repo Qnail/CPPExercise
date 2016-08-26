@@ -1,112 +1,134 @@
-/*cpp*/
-
 #include <iostream>
-#include <string.h>
+#include <malloc.h>
 using namespace std;
-/*
-2 3 2
-111
-010
 
-100
-100
-*/
-void count_one_zero(int *a,int flag,int *one,int **group,int n,int m,int k,int roundCount)
-{
-	for(int i =0;i<k;i++)
-	{
-		if(group[roundCount][i]==flag)
-		{
-			for(int j=0;j<n*m;j++)
-			{
-				if(a[i*n*m+j]==1)
-				{
-					one[j]++;
-				}else{
-					one[j]--;
+typedef struct TreeNode{
+	int *group;
+	int groupSize;
+	TreeNode *left;
+	TreeNode *right;
+	//k为字符个数
+	TreeNode(int *g,int k){
+		group = new int[k]();
+		groupSize = k;
+		for (int i = 0; i < k; i++){
+			group[i] = g[i];
+		}
+		left = NULL;
+		right = NULL;
+	}
+}TreeNode,*BiTree;
+
+int abss(int a){
+	return a>=0?a:-a;
+}
+int countDifference(char *a, int *group, int n, int m, int k, int flag){
+	int index=0;
+	int minDifference = k;//总共k个，假设最大差别是k
+	int *one = new int[n*m*k]();
+	for (int i = 0; i < n*m*k; i++){
+		one[i] = 0;
+	}
+	for (int i = 0; i < n*m; i++){
+		for (int j = 0; j < k; j++){
+			if (group[j] == flag){
+				if (a[j*n*m + i] == '1'){
+					one[i]++;
+				}
+				else{
+					one[i]--;
 				}
 			}
 		}
-	}
-
-}
-
-int minDiff_index(int *one,int n,int m)
-{
-	int minDiff = one[0];
-	int index;
-	for(int i =0;i<n*m;i++)
-	{
-		if(minDiff==0)
-		{
-			return i;
-		}
-		if(minDiff>one[i])
-		{
-			minDiff=one[i];
-			index = i;		
+		if (minDifference>abss(one[i])){
+			minDifference = abss(one[i]);
+			index = i;
+			if (minDifference == 0){
+				break;
+			}
 		}
 	}
+	delete one;
 	return index;
 }
 
-int merge(int *a,int *one,int **group,int n, int m,int k,int roundCount)
-{
-	roundCount++;
-	int index = minDiff_index(one,n,m);
-	for(int i =0;i<k;i++)
-	{
-		group[roundCount][i] += a[k*n*m+index];
+void creatTree(BiTree &root, int *data,char *a, int n, int m, int k){
+	root = new TreeNode(data, k);
+	int index;
+	int count=0;
+	int *lg = new int[k]();
+	int *rg = new int[k]();
+	for (int i = 0; i < root->groupSize; i++){
+		if (root->group[i] == 1){
+			count++;
+		}
+	}
+	
+	if (count != 1){
+		index = countDifference(a, root->group, n, m, k, 1);
+		for (int j = 0; j < k; j++){
+			if (root->group[j] == 0){
+				lg[j] = 0;
+				rg[j] = 0;
+				continue;
+			}
+			if (a[j*n*m + index] == '1'){
+				lg[j] = 1;
+				rg[j] = 0;
+			}
+			else{
+				lg[j] = 0;
+				rg[j] = 1;
+			}
+		}
+		creatTree(root->left, lg,a, n, m, k);
+		creatTree(root->right, rg,a, n, m, k);
 	}
 
-	memset(one,0,sizeof(one));
-	count_one_zero(a,one,group,n,m,k,roundCount);
+}
 
-	merge(a,one,group,n,m,k);
-	//merge(a,zero,group,n,m,k);
+int max(int a,int b){
+	return a>b?a:b;
+}
+
+int printTree(TreeNode *root,int k)
+{
+	if (root == NULL)return 0;
+	// for (int i = 0; i < k; i++){
+	// 	cout << root->group[i] << ' ';
+	// }
+	// cout << endl;
+	return max(printTree(root->left, k)+1,printTree(root->right, k)+1);
 }
 
 int main()
 {
-	int n,m,k;
-	cin>>n>>m>>k;
-	char a[n*m*k];
-	int one[n*m],zero[n*m];
-	int index;
-	int group[k][k];
-	int roundCount=0;
-	int count=k;
-	int result;
-	memset(one,0,sizeof(one));
-	memset(group,-1,sizeof(group));
-	for(int l = 0;l<n*m*k;l++)
+	char tem[10];
+	int n, m, k;
+	cin >> n >> m >> k;
+	char *a = (char *)malloc(sizeof(char)*n*m*k);
+	int count = 0;
+	int *group = new int[k]();
+	for (int i = 0; i < k; i++){
+		group[i] = 1;
+	}
+	cin.getline(tem, 10);
+	for (int l = 0; l<n*m*k; l++)
 	{
-		if(l%(n+1)==0)
+		if (l % (n*m) == 0)
+		{
+			cin.getline(tem,10);
+		}
+		a[l] = cin.get();
+		if ((l+1)%m==0)
 		{
 			cin.get();
 		}
-		a[l]=cin.get();
-		if(l==n*m-1)
-		{
-			cin.get();
-		}
-		if(a[l]=='1')
-		{
-			one[l%(n*m)]++;
-		}
-		else{
-			one[l%(n*m)]--;
-		}
 	}
-
-
-	for(int i = 0 ;i<k;i++)
-	{
-		for(int j = 0 ;j<k;j++)
-		{
-			cout<<group[i][j];
-		}
-		cout<<endl;
-	}
-
+	BiTree root;
+	creatTree(root, group, a, n, m, k);
+	
+	cout << printTree(root, k)-1 << endl;
 }
+
+d56db64f-3943-4483-9fe3-486430faa413
